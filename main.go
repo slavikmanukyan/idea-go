@@ -2,10 +2,27 @@ package main
 
 import "fmt"
 
+func xgcd(a int, b int) (int, int, int) {
+	prevx, x := 1, 0
+	prevy, y := 0, 1
+	for b != 0 {
+		q := a / b
+		x, prevx = prevx-q*x, x
+		y, prevy = prevy-q*y, y
+		a, b = b, a%b
+	}
+	return a, prevx, prevy
+}
+
 func mul(a uint16, b uint16) uint16 {
-	r := int32(a * b)
+	r := int32(a) * int32(b)
 	if r != 0 {
-		return uint16((r % 0x10001) & 0xFFFF)
+		rh := (r >> 16) & 0xFFFF
+		rl := r & 0xFFFF
+		if rl > rh {
+			return uint16(rl - rh)
+		}
+		return uint16((rl - rh + 0x10001) & 0xFFFF)
 	}
 	return uint16(int32(1-a-b) & 0xFFFF)
 }
@@ -22,22 +39,9 @@ func mulInv(x uint16) uint16 {
 	if x <= 1 {
 		return x
 	}
-	y := 0x10001
-	t0 := 1
-	t1 := 0
-	for {
-		t1 += y / int(x) * t0
-		y = y % int(x)
-		if y == 1 {
-			fmt.Println(t1)
-			return uint16(0x10001 - t1)
-		}
-		t0 += int(x) / y * t1
-		x %= uint16(y)
-		if x == 1 {
-			return uint16(t0)
-		}
-	}
+	a := 0x10001
+	_, _, y := xgcd(a, int(x))
+	return uint16(y + a)
 }
 
 func crypt(data [8]uint8, subKey [52]uint16) [8]uint8 {
@@ -157,7 +161,10 @@ func IDEAInvertEncryptionKey(key [52]uint16) [52]uint16 {
 
 func main() {
 	a := IDEAEncryptionKeySchedule([16]uint8{0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x04, 0x00, 0x05, 0x00, 0x06, 0x00, 0x07, 0x00, 0x08})
+	b := IDEAInvertEncryptionKey(a)
 	fmt.Println(a)
-	fmt.Println(IDEAInvertEncryptionKey(a))
-	fmt.Println(crypt([8]uint8{0, 0, 0, 1, 0, 2, 0, 3}, a))
+	fmt.Println(b)
+	c := crypt([8]uint8{0, 0, 0, 1, 0, 2, 0, 3}, a)
+	d := crypt(c, b)
+	fmt.Println(c, d)
 }
