@@ -39,9 +39,22 @@ func mulInv(x uint16) uint16 {
 	if x <= 1 {
 		return x
 	}
-	a := 0x10001
-	_, _, y := xgcd(a, int(x))
-	return uint16(y + a)
+	y := 0x10001
+	t0 := 1
+	t1 := 0
+	for {
+		t1 += y / int(x) * t0
+		y = y % int(x)
+		if y == 1 {
+			fmt.Println(t1)
+			return uint16(0x10001 - t1)
+		}
+		t0 += int(x) / y * t1
+		x %= uint16(y)
+		if x == 1 {
+			return uint16(t0)
+		}
+	}
 }
 
 func crypt(data [8]uint8, subKey [52]uint16) [8]uint8 {
