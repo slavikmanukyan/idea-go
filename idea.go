@@ -1,6 +1,7 @@
 package idea
 
 const BlockSize int = 8
+const KeySize int = 16
 
 // Block for encrypting decripting
 type Block struct {
@@ -14,9 +15,11 @@ type cryptoBlock interface {
 	Decrypt([]uint8) []uint8
 }
 
-func (b *Block) SetKey(key [16]uint8) {
-	b.key = key
-	b.encryptionKey = EncryptionKeySchedule(key)
+func (b *Block) SetKey(key []uint8) {
+	for i := 0; i < KeySize; i++ {
+		b.key[i] = key[i]
+	}
+	b.encryptionKey = EncryptionKeySchedule(b.key)
 	b.decryptionKey = InvertEncryptionKey(b.encryptionKey)
 }
 
@@ -153,7 +156,6 @@ func EncryptionKeySchedule(key [16]uint8) [52]uint16 {
 }
 
 func InvertEncryptionKey(key [52]uint16) [52]uint16 {
-
 	invKey := [52]uint16{}
 	p := 0
 	i := 8 * 6
@@ -195,7 +197,7 @@ func InvertEncryptionKey(key [52]uint16) [52]uint16 {
 	return invKey
 }
 
-func NewBlock(key [16]uint8) cryptoBlock {
+func NewBlock(key []uint8) cryptoBlock {
 	b := Block{}
 	b.SetKey(key)
 	return b
